@@ -1,133 +1,191 @@
 import React, { useRef, useLayoutEffect } from 'react';
 import { Section } from './ui/Section';
-import { Home, Building2, PaintBucket, Layers, Ruler, Brush, ArrowRight } from 'lucide-react';
+import * as LucideIcons from 'lucide-react'; // Imports all icons
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useContent } from '../context/ContentContext';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// --- 1. Dynamic Icon Helper ---
+// This component takes a string name (e.g., "PaintBucket") and renders the icon.
+const DynamicIcon = ({ name, className, size = 24 }: { name: string, className?: string, size?: number }) => {
+  // @ts-ignore - Dynamic lookup of the icon component
+  const IconComponent = LucideIcons[name];
+
+  if (!IconComponent) {
+    // Fallback icon if the name doesn't exist
+    return <LucideIcons.HelpCircle size={size} className={className} />;
+  }
+
+  return <IconComponent size={size} className={className} strokeWidth={1.5} />;
+};
+
+// --- Automatic Icon Selection (Fallback) ---
+const getAutomaticIcon = (title: string = '', description: string = '') => {
+  const text = `${title} ${description}`.toLowerCase();
+  if (text.includes('residential') || text.includes('home') || text.includes('house')) return 'Home';
+  if (text.includes('commercial') || text.includes('office') || text.includes('business')) return 'Building2';
+  if (text.includes('interior') || text.includes('inside')) return 'PaintBucket';
+  if (text.includes('exterior') || text.includes('outside')) return 'Layers';
+  if (text.includes('roof')) return 'Ruler';
+  if (text.includes('plaster') || text.includes('gib')) return 'Brush';
+  if (text.includes('wash') || text.includes('clean')) return 'Droplets';
+  if (text.includes('fence')) return 'Fence';
+  if (text.includes('maintenance') || text.includes('repair')) return 'Wrench';
+  return 'Brush';
+};
+
 export const Services: React.FC = () => {
   const comp = useRef<HTMLDivElement>(null);
+  const { services, loading } = useContent();
+  const servicesData = services; // Alias to match existing code usage
 
+  // --- 3. Animations ---
   useLayoutEffect(() => {
+    if (loading || servicesData.length === 0) return;
+
     let ctx = gsap.context(() => {
-      gsap.from(".bento-item", {
-        scrollTrigger: {
-          trigger: ".services-grid",
-          start: "top 85%",
-        },
-        y: 50,
+      // Header Animation
+      gsap.from(".service-header-item", {
+        scrollTrigger: { trigger: comp.current, start: "top 80%" },
+        y: 30,
         opacity: 0,
         duration: 0.8,
         stagger: 0.1,
         ease: "power2.out",
-        clearProps: "all"
       });
-      
-      gsap.from(".service-header", {
-        scrollTrigger: {
-          trigger: comp.current,
-          start: "top 85%",
-        },
-        y: 30,
+
+      // Grid Cards Animation
+      gsap.from(".bento-card", {
+        scrollTrigger: { trigger: ".services-grid", start: "top 85%" },
+        y: 60,
         opacity: 0,
         duration: 0.8,
-        ease: "power2.out",
+        stagger: 0.1,
+        ease: "power3.out",
         clearProps: "all"
       });
     }, comp);
-    return () => ctx.revert();
-  }, []);
 
-  const services = [
-    {
-      id: "residential",
-      icon: Home,
-      title: "Residential Painting",
-      description: "Transform your home with our premium interior and exterior painting services. We handle everything from single rooms to full home renovations with care and precision.",
-      className: "md:col-span-2 md:row-span-1 bg-slate-50 min-h-[250px]",
-      iconClass: "bg-white text-nz-accent"
-    },
-    {
-      id: "commercial",
-      icon: Building2,
-      title: "Commercial",
-      description: "Scalable painting solutions for offices, retail, and warehouses. We work around your schedule to minimize disruption.",
-      className: "md:col-span-1 md:row-span-2 bg-slate-900 text-white min-h-[400px]",
-      iconClass: "bg-white/10 text-sky-400"
-    },
-    {
-      id: "interior",
-      icon: PaintBucket,
-      title: "Interior",
-      description: "Flawless walls, ceilings, and trims. Expert colour consultation included.",
-      className: "md:col-span-1 md:row-span-1 bg-white border border-slate-100 min-h-[250px]",
-      iconClass: "bg-sky-50 text-nz-accent"
-    },
-    {
-      id: "exterior",
-      icon: Layers,
-      title: "Exterior",
-      description: "Weather-resistant coatings designed for New Zealand's harsh conditions.",
-      className: "md:col-span-1 md:row-span-1 bg-white border border-slate-100 min-h-[250px]",
-      iconClass: "bg-sky-50 text-nz-accent"
-    },
-    {
-      id: "roof",
-      icon: Ruler,
-      title: "Roof Painting",
-      description: "Extend your roof's lifespan with cleaning, sealing, and coating.",
-      className: "md:col-span-1 md:row-span-1 bg-white border border-slate-100 min-h-[250px]",
-      iconClass: "bg-sky-50 text-nz-accent"
-    },
-    {
-      id: "plaster",
-      icon: Brush,
-      title: "Plastering",
-      description: "Surface prep, gib stopping, and repairs for a perfect canvas.",
-      className: "md:col-span-1 md:row-span-1 bg-white border border-slate-100 min-h-[250px]",
-      iconClass: "bg-sky-50 text-nz-accent"
-    }
-  ];
+    return () => ctx.revert();
+  }, [loading, servicesData]);
+
+  // --- 4. Grid Layout Logic (The "Bento" Style) ---
+  const getCardStyle = (index: number) => {
+    // Define specific layouts for the first few items to create visual interest
+    if (index === 0) return "md:col-span-2 md:row-span-1 bg-slate-900 text-white"; // Wide Dark Card
+    if (index === 1) return "md:col-span-1 md:row-span-2 bg-blue-600 text-white";  // Tall Accent Card
+    if (index === 2) return "md:col-span-1 md:row-span-1 bg-white border-slate-200"; // Standard White
+    return "md:col-span-1 md:row-span-1 bg-white border-slate-200"; // Default
+  };
 
   return (
-    <div ref={comp}>
-      <Section id="services" className="relative overflow-hidden bg-white">
-        <div className="service-header text-center max-w-3xl mx-auto mb-12">
-          <span className="inline-block py-1 px-3 rounded-full bg-sky-100 text-nz-accent font-semibold tracking-wider uppercase text-xs mb-3">Our Expertise</span>
-          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mt-2 mb-4 tracking-tight">Complete Painting Solutions</h2>
-          <p className="text-slate-600 text-lg">Detailed care for every surface. Choose the experts for your next project.</p>
+    <div ref={comp} className="bg-slate-50">
+      <Section id="services" className="relative py-24 px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+          <div className="service-header-item inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 text-blue-600 text-xs font-bold uppercase tracking-wider shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            Our Expertise
+          </div>
+          <h2 className="service-header-item text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+            Crafting Perfection <br className="hidden md:block" /> on Every Surface
+          </h2>
+          <p className="service-header-item text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            From residential touch-ups to industrial overhauls, we bring professional precision to every project.
+          </p>
         </div>
 
-        <div className="services-grid grid grid-cols-1 md:grid-cols-3 gap-4">
-          {services.map((service) => (
-            <div 
-              key={service.id} 
-              className={`bento-item rounded-3xl p-8 flex flex-col justify-between group hover:shadow-xl transition-all duration-300 ${service.className}`}
-            >
-              <div>
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 ${service.iconClass}`}>
-                  <service.icon size={24} />
+        {/* Bento Grid */}
+        <div className="services-grid max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(280px,auto)]">
+
+          {servicesData.map((service, index) => {
+            const cardStyle = getCardStyle(index);
+            const isDark = cardStyle.includes('text-white');
+            const iconName = service.icon || getAutomaticIcon(service.title, service.description);
+
+            return (
+              <div
+                key={service.id || index}
+                className={`
+                  bento-card group relative overflow-hidden rounded-[2.5rem] p-8 flex flex-col justify-between
+                  transition-all duration-500 hover:shadow-2xl hover:-translate-y-1
+                  ${isDark ? 'shadow-xl shadow-slate-900/10' : 'shadow-lg shadow-slate-200/50 border'}
+                  ${cardStyle}
+                `}
+              >
+                {/* Background Image (Optional: ensure your API returns 'bgImage') */}
+                {service.bgImage && isDark && (
+                  <div className="absolute inset-0 z-0">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                      style={{ backgroundImage: `url(${service.bgImage})` }}
+                    />
+                    <div className="absolute inset-0 bg-black/60 z-10" />
+                  </div>
+                )}
+
+                {/* Decorative Gradients for Non-Image cards */}
+                {!service.bgImage && isDark && (
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                )}
+                {!service.bgImage && !isDark && (
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none group-hover:bg-blue-100 transition-colors" />
+                )}
+
+                {/* Content */}
+                <div className="relative z-20">
+                  <div className={`
+                    w-12 h-12 rounded-2xl flex items-center justify-center mb-6 text-lg
+                    backdrop-blur-md transition-all duration-300
+                    ${isDark
+                      ? 'bg-white/10 text-white border border-white/20'
+                      : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                    }
+                  `}>
+                    {/* DYNAMIC ICON USAGE */}
+                    <DynamicIcon name={iconName} />
+                  </div>
+
+                  <h3 className="text-2xl font-bold mb-2 tracking-tight">
+                    {service.title}
+                  </h3>
+                  <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
+                    {service.description}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-3">{service.title}</h3>
-                <p className={`text-sm leading-relaxed ${service.id === 'commercial' ? 'text-slate-400' : 'text-slate-600'}`}>
-                  {service.description}
-                </p>
+
+                {/* Arrow Action */}
+                <div className="relative z-20 flex justify-end mt-4">
+                  <div className={`
+                    p-2 rounded-full transition-transform duration-300 group-hover:scale-110
+                    ${isDark ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-900'}
+                  `}>
+                    <ArrowUpRight size={20} />
+                  </div>
+                </div>
               </div>
-              <div className="mt-6 flex justify-end">
-                <div className={`p-2 rounded-full transition-colors ${service.id === 'commercial' ? 'bg-white/10 group-hover:bg-white/20' : 'bg-slate-100 group-hover:bg-nz-accent group-hover:text-white'}`}>
-                  <ArrowRight size={20} />
-                </div>
+            );
+          })}
+
+          {/* Call To Action Card (Always Last) */}
+          <div
+            onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bento-card md:col-span-1 md:row-span-1 bg-slate-900 text-white rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center cursor-pointer group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-500/40 via-slate-900 to-slate-900"></div>
+            <div className="relative z-10 space-y-4">
+              <h3 className="text-2xl font-bold">Have a custom project?</h3>
+              <div className="flex items-center gap-2 text-blue-200 group-hover:text-white transition-colors">
+                <span>Get a Quote</span>
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
-          ))}
-          
-          {/* CTA Card to fill the grid */}
-          <div className="bento-item md:col-span-1 md:row-span-1 min-h-[250px] rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-gradient-to-br from-nz-accent to-sky-600 text-white group cursor-pointer hover:shadow-xl transition-all duration-300" onClick={() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'})}>
-            <h3 className="text-2xl font-bold mb-2">Need a Quote?</h3>
-            <p className="text-sky-100 text-sm mb-6">Get a fast, free estimate for your project today.</p>
-            <span className="bg-white text-nz-accent px-6 py-2 rounded-full font-bold text-sm group-hover:bg-sky-50 transition-colors">Contact Us</span>
           </div>
+
         </div>
       </Section>
     </div>

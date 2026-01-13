@@ -1,13 +1,20 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useMemo } from 'react';
 import { Section } from './ui/Section';
 import { ArrowUpRight } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useContent } from '../context/ContentContext';
+import { Link } from 'react-router-dom';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export const Gallery: React.FC = () => {
+interface GalleryProps {
+  limit?: number;
+}
+
+export const Gallery: React.FC<GalleryProps> = ({ limit }) => {
   const comp = useRef<HTMLDivElement>(null);
+  const { gallery } = useContent();
 
   useLayoutEffect(() => {
     let ctx = gsap.context(() => {
@@ -32,38 +39,27 @@ export const Gallery: React.FC = () => {
     return () => ctx.revert();
   }, []);
 
-  const projects = [
-    { 
-      src: "https://images.unsplash.com/photo-1560518883-ce09059ee971?q=80&w=800&auto=format&fit=crop", 
-      category: "Residential Interior",
-      className: "md:col-span-2 md:row-span-2 min-h-[300px] md:min-h-[500px]"
-    },
-    { 
-      src: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop", 
-      category: "Modern Renovation",
-      className: "md:col-span-1 md:row-span-1 min-h-[250px]"
-    },
-    { 
-      src: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop", 
-      category: "Commercial Exterior",
-      className: "md:col-span-1 md:row-span-2 min-h-[300px] md:min-h-[500px]"
-    },
-    { 
-      src: "https://images.unsplash.com/photo-1513584684374-8bab748fbf90?q=80&w=800&auto=format&fit=crop", 
-      category: "Feature Wall",
-      className: "md:col-span-1 md:row-span-1 min-h-[250px]"
-    },
-    { 
-      src: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800&auto=format&fit=crop", 
-      category: "Bathroom Upgrade",
-      className: "md:col-span-1 md:row-span-1 min-h-[250px]"
-    },
-    { 
-      src: "https://images.unsplash.com/photo-1574359411659-15573a21bc2b?q=80&w=800&auto=format&fit=crop", 
-      category: "Exterior Refresh",
-      className: "md:col-span-1 md:row-span-1 min-h-[250px]"
-    }
-  ];
+  // Helper to cycle through grid classes
+  const getGridClass = (index: number) => {
+    const patterns = [
+      "md:col-span-2 md:row-span-2 min-h-[300px] md:min-h-[500px]",
+      "md:col-span-1 md:row-span-1 min-h-[250px]",
+      "md:col-span-1 md:row-span-2 min-h-[300px] md:min-h-[500px]",
+      "md:col-span-1 md:row-span-1 min-h-[250px]",
+      "md:col-span-1 md:row-span-1 min-h-[250px]",
+      "md:col-span-1 md:row-span-1 min-h-[250px]"
+    ];
+    return patterns[index % patterns.length];
+  };
+
+  const projects = useMemo(() => {
+    return gallery.map((img: any, index: number) => ({
+      src: img.src,
+      category: img.projectName || img.category, // Use projectName if available, else category
+      alt: img.title || img.category, // Use title for alt text
+      className: getGridClass(index)
+    }));
+  }, [gallery]);
 
   return (
     <div ref={comp}>
@@ -79,16 +75,16 @@ export const Gallery: React.FC = () => {
         </div>
 
         <div className="gallery-grid grid grid-cols-1 md:grid-cols-4 gap-4">
-          {projects.map((project, index) => (
+          {projects.slice(0, limit || projects.length).map((project, index) => (
             <div key={index} className={`gallery-item group relative overflow-hidden rounded-3xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-500 bg-slate-200 ${project.className}`}>
-              <img 
-                src={project.src} 
-                alt={project.category} 
+              <img
+                src={project.src}
+                alt={project.alt}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
-              
+
               {/* Floating Label */}
               <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 z-10">
                 <ArrowUpRight size={20} className="text-slate-900" />
@@ -103,6 +99,18 @@ export const Gallery: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {limit && limit < projects.length && (
+          <div className="mt-12 text-center">
+            <Link
+              to="/gallery"
+              className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-full font-semibold hover:bg-nz-accent transition-colors duration-300"
+            >
+              View All Projects
+              <ArrowUpRight size={20} />
+            </Link>
+          </div>
+        )}
       </Section>
     </div>
   );

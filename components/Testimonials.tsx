@@ -1,82 +1,206 @@
 import React, { useRef, useLayoutEffect } from 'react';
-import { Section } from './ui/Section';
-import { Star } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useContent } from '../context/ContentContext';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export const Testimonials: React.FC = () => {
   const comp = useRef<HTMLDivElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
+  const { testimonials } = useContent();
 
   useLayoutEffect(() => {
     let ctx = gsap.context(() => {
+      // 1. Parallax Background (Disabled on mobile for performance/smoothness)
+      if (window.innerWidth > 768) {
+        gsap.to(bgRef.current, {
+          scrollTrigger: {
+            trigger: comp.current,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1,
+          },
+          y: 50,
+          ease: "none"
+        });
+      }
+
+      // 2. Header Reveal
+      gsap.from(".testimonial-header", {
+        scrollTrigger: {
+          trigger: comp.current,
+          start: "top 85%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.out"
+      });
+
+      // 3. Cards Stagger
       gsap.from(".review-card", {
         scrollTrigger: {
           trigger: ".reviews-grid",
           start: "top 80%",
         },
-        y: 40,
+        y: 50,
         opacity: 0,
         duration: 0.8,
         stagger: 0.15,
-        ease: "power2.out"
+        ease: "power2.out",
+        clearProps: "all"
       });
+
+      // 4. Rating Badge Reveal
+      gsap.from(".rating-badge", {
+        scrollTrigger: {
+          trigger: ".reviews-grid",
+          start: "bottom 95%",
+        },
+        y: 20,
+        opacity: 0,
+        duration: 0.6,
+        delay: 0.2
+      });
+
     }, comp);
     return () => ctx.revert();
   }, []);
 
-  const reviews = [
-    {
-      name: "Sarah Thompson",
-      location: "Auckland",
-      text: "NZ Painters transformed our villa completely. The team was respectful, tidy, and the finish is flawless. Highly recommend!",
-      stars: 5
-    },
-    {
-      name: "James Henare",
-      location: "Wellington",
-      text: "Great communication from start to finish. They painted our commercial office over the weekend so we didn't lose any work time.",
-      stars: 5
-    },
-    {
-      name: "Michelle Lee",
-      location: "Christchurch",
-      text: "Fair pricing and excellent workmanship. They even fixed up some old plaster cracks I hadn't noticed. Very happy.",
-      stars: 5
-    }
-  ];
+  // Helper to get initials
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Helper to get random color for initials background
+  const getAvatarColor = (index: number) => {
+    const colors = [
+      "bg-rose-100 text-rose-600",
+      "bg-blue-100 text-blue-600",
+      "bg-emerald-100 text-emerald-600",
+      "bg-amber-100 text-amber-600",
+      "bg-purple-100 text-purple-600",
+      "bg-cyan-100 text-cyan-600"
+    ];
+    return colors[index % colors.length];
+  };
 
   return (
-    <div ref={comp}>
-      <Section id="testimonials" dark>
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-nz-accent font-semibold tracking-wider uppercase text-sm">Testimonials</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2 mb-4">What Our Clients Say</h2>
+    <div ref={comp} className="relative overflow-hidden py-16 md:py-24 bg-slate-50">
+
+      {/* --- Light Background Theme --- */}
+      <div ref={bgRef} className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white"></div>
+        <div className="absolute inset-0 opacity-[0.3]"
+          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #cbd5e1 1px, transparent 0)', backgroundSize: '32px 32px' }}>
+        </div>
+        {/* Mobile-optimized blobs */}
+        <div className="absolute top-0 left-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-sky-100/50 rounded-full blur-[80px] md:blur-[100px] -translate-y-1/2 -translate-x-1/4 mix-blend-multiply"></div>
+        <div className="absolute bottom-0 right-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-purple-100/50 rounded-full blur-[80px] md:blur-[100px] translate-y-1/3 translate-x-1/4 mix-blend-multiply"></div>
+      </div>
+
+      <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl">
+
+        {/* Header */}
+        <div className="testimonial-header text-center max-w-3xl mx-auto mb-10 md:mb-16">
+          <span className="inline-block py-1 px-3 rounded-full bg-white border border-slate-200 text-nz-accent font-semibold tracking-wider uppercase text-[10px] md:text-xs mb-3 shadow-sm">
+            Testimonials
+          </span>
+          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4 md:mb-6 tracking-tight">
+            What Our Clients Say
+          </h2>
+          <p className="text-slate-600 text-base md:text-xl max-w-2xl mx-auto">
+            We take pride in our work, but don't just take our word for it.
+          </p>
         </div>
 
-        <div className="reviews-grid grid grid-cols-1 md:grid-cols-3 gap-8">
-          {reviews.map((review, index) => (
-            <div key={index} className="review-card bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-lg transition-shadow duration-300 relative overflow-hidden">
-              <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-gradient-to-br from-sky-100 to-transparent rounded-bl-3xl opacity-50"></div>
-              <div className="flex gap-1 text-yellow-400 mb-4">
-                {[...Array(review.stars)].map((_, i) => (
-                  <Star key={i} size={18} fill="currentColor" />
+        {/* Reviews Grid */}
+        <div className="reviews-grid grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
+          {testimonials.length > 0 ? (
+            testimonials.map((review, index) => (
+              <div
+                key={review.id || index}
+                className="review-card group relative bg-white/60 backdrop-blur-md p-6 md:p-8 rounded-3xl md:rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 flex flex-col h-full"
+              >
+                {/* Decorative Quote Icon (Scaled down for mobile) */}
+                <div className="absolute top-6 right-6 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
+                  <Quote size={48} className="text-nz-accent fill-current md:w-16 md:h-16" />
+                </div>
+
+                {/* Stars */}
+                <div className="flex gap-1 mb-4 md:mb-6 relative z-10">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={16} className="fill-yellow-400 text-yellow-400 md:w-[18px] md:h-[18px]" />
+                  ))}
+                </div>
+
+                {/* Review Text */}
+                <p className="text-slate-600 text-base md:text-lg leading-relaxed mb-6 md:mb-8 flex-grow relative z-10 font-medium">
+                  "{review.content}"
+                </p>
+
+                {/* Author Info */}
+                <div className="mt-auto flex items-center gap-3 md:gap-4 pt-5 md:pt-6 border-t border-slate-100/50">
+                  {review.avatar ? (
+                    <img
+                      src={review.avatar}
+                      alt={review.name}
+                      className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shrink-0 border border-slate-100"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        e.currentTarget.nextElementSibling?.classList.add('flex');
+                      }}
+                    />
+                  ) : null}
+
+                  {/* Fallback Initials Avatar */}
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center font-bold text-base md:text-lg shrink-0 ${getAvatarColor(index)} ${review.avatar ? 'hidden' : 'flex'}`}>
+                    {getInitials(review.name)}
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm md:text-base leading-tight">{review.name}</h4>
+                    {review.role && (
+                      <p className="text-xs md:text-sm text-slate-400 font-medium">{review.role}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-10 text-slate-500">
+              No testimonials found.
+            </div>
+          )}
+        </div>
+
+        {/* Google Rating Badge (Responsive Flex) */}
+        <div className="rating-badge mt-10 md:mt-16 text-center">
+          <a href="#" className="inline-flex flex-col sm:flex-row items-center gap-3 sm:gap-4 bg-white px-6 py-4 md:px-8 rounded-2xl md:rounded-full shadow-lg shadow-slate-200/50 border border-slate-100 hover:scale-105 hover:shadow-xl transition-all duration-300 group max-w-xs sm:max-w-none mx-auto">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-5 md:h-6" />
+
+            <div className="hidden sm:block h-6 w-[1px] bg-slate-200"></div>
+
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="flex gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-              <p className="text-slate-600 mb-6 flex-grow italic relative z-10">"{review.text}"</p>
-              <div className="mt-auto border-t border-slate-100 pt-4">
-                <p className="font-bold text-slate-900">{review.name}</p>
-                <p className="text-sm text-slate-500">{review.location}</p>
-              </div>
+              <span className="text-xs font-bold text-slate-600 mt-0.5 group-hover:text-nz-accent transition-colors">4.9/5 Rating based on 150+ reviews</span>
             </div>
-          ))}
+          </a>
         </div>
-        
-        <div className="mt-12 text-center review-card">
-          <div className="inline-flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-md border border-slate-100 hover:scale-105 transition-transform duration-300">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-6" />
-            <span className="font-semibold text-slate-700">4.9/5 Rating based on 150+ reviews</span>
-          </div>
-        </div>
-      </Section>
+
+      </div>
     </div>
   );
 };
