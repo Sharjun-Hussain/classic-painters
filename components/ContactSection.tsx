@@ -4,14 +4,15 @@ import { Phone, Mail, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useContent } from '../context/ContentContext';
+import { contactApi } from '../src/services/api';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export const ContactSection: React.FC = () => {
   const { settings } = useContent();
-  const parsedSettings = { ...settings };
-  // Basic parsing if needed, though usually settings come as JSON objects from the API if handled correctly there.
-  // But based on Footer implementation, we might need to be careful.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -53,10 +54,22 @@ export const ContactSection: React.FC = () => {
     return () => ctx.revert();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Thank you! Your quote request has been sent. We will contact you shortly.');
-    setFormData({ name: '', phone: '', email: '', service: 'Residential', message: '' });
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await contactApi.sendContactForm(formData);
+      setIsSuccess(true);
+      setFormData({ name: '', phone: '', email: '', service: 'Residential', message: '' });
+      setTimeout(() => setIsSuccess(false), 5000);
+    } catch (err: any) {
+      console.error('Submit error:', err);
+      setError('Failed to send message. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -93,8 +106,8 @@ export const ContactSection: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-lg text-slate-900 mb-1">Call Us</h4>
-                  <a href={`tel:${parsedSettings.contactPhone || '0800PAINTER'}`} className="text-2xl font-bold text-slate-700 group-hover:text-nz-accent transition-colors block">
-                    {parsedSettings.contactPhone || '0800 PAINTER'}
+                  <a href={`tel:${settings.contactPhone || '0800PAINTER'}`} className="text-2xl font-bold text-slate-700 group-hover:text-nz-accent transition-colors block">
+                    {settings.contactPhone || '0800 PAINTER'}
                   </a>
                   <p className="text-sm text-slate-400 mt-1 font-medium">Available 7am - 6pm</p>
                 </div>
@@ -107,8 +120,8 @@ export const ContactSection: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-lg text-slate-900 mb-1">Email Us</h4>
-                  <a href={`mailto:${parsedSettings.contactEmail || 'info@classic-painters.com'}`} className="text-lg text-slate-600 group-hover:text-nz-accent transition-colors">
-                    {parsedSettings.contactEmail || 'info@classic-painters.com'}
+                  <a href={`mailto:${settings.contactEmail || 'info@classic-painters.com'}`} className="text-lg text-slate-600 group-hover:text-nz-accent transition-colors">
+                    {settings.contactEmail || 'info@classic-painters.com'}
                   </a>
                 </div>
               </div>
@@ -120,7 +133,7 @@ export const ContactSection: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-lg text-slate-900 mb-1">Service Areas</h4>
-                  <p className="text-slate-600">{parsedSettings.contactAddress || 'Auckland, Wellington, Christchurch'}</p>
+                  <p className="text-slate-600">{settings.contactAddress || 'Auckland, Wellington, Christchurch'}</p>
                 </div>
               </div>
             </div>
@@ -218,17 +231,33 @@ export const ContactSection: React.FC = () => {
                   ></textarea>
                 </div>
 
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium">
+                    {error}
+                  </div>
+                )}
+
+                {isSuccess && (
+                  <div className="p-4 bg-green-50 border border-green-100 text-green-600 rounded-xl text-sm font-medium flex items-center gap-2">
+                    <CheckCircle2 size={18} />
+                    Thank you! Your request has been sent successfully.
+                  </div>
+                )}
+
                 {/* --- Animated Submit Button (Same as CTA) --- */}
                 <button
                   type="submit"
-                  className="group relative w-full overflow-hidden rounded-xl bg-slate-900 px-8 py-4 text-white shadow-xl shadow-slate-900/20 transition-all hover:scale-[1.01] hover:shadow-2xl hover:shadow-slate-900/30 mt-2"
+                  disabled={isSubmitting}
+                  className={`group relative w-full overflow-hidden rounded-xl bg-slate-900 px-8 py-4 text-white shadow-xl shadow-slate-900/20 transition-all hover:scale-[1.01] hover:shadow-2xl hover:shadow-slate-900/30 mt-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   <div className="relative z-10 flex items-center justify-center gap-2 font-bold text-lg">
-                    Send Request
-                    <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                    {isSubmitting ? 'Sending...' : 'Send Request'}
+                    {!isSubmitting && <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />}
                   </div>
                   {/* Button Shine Effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
+                  {!isSubmitting && (
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
+                  )}
                 </button>
 
                 <p className="text-xs text-center text-slate-400 mt-4">

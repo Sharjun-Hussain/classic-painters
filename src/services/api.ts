@@ -112,6 +112,24 @@ export const settingsApi = {
     },
 };
 
+// ==================== CONTACT ====================
+export const contactApi = {
+    /**
+     * Send contact form data
+     * @param {Object} data - Form data (name, email, phone, service, message)
+     * @returns {Promise} Response data
+     */
+    sendContactForm: async (data: { name: string; email: string; phone: string; service: string; message: string }) => {
+        try {
+            const response = await apiClient.post('/api/contact', data);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to send contact form:', error);
+            throw error;
+        }
+    },
+};
+
 // ==================== PAGE SECTIONS ====================
 export const sectionsApi = {
     /**
@@ -186,5 +204,6 @@ export default {
     testimonials: testimonialsApi,
     settings: settingsApi,
     sections: sectionsApi,
+    contact: contactApi,
     getHomepageData,
 };
